@@ -32,16 +32,26 @@ func main() {
 
 		receivedData := string(buf[:size])
 
-		receivedMsg := Deserialize(buf)
-		fmt.Printf("Received %d bytes from %s: %v\n", size, source, receivedMsg)
+//		receivedMsg := Deserialize(buf)
+//		fmt.Printf("Received %d bytes from %s: %v\n", size, source, receivedMsg)
 		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 		msg := DNSMessage{
 			Header: DNSHeader{
 				ID: 1234,
 				Flags: DNSHeaderFlags{
 					QR: true,
+					OPCODE: 0,
+					AA: false,
+					TC: false,
+					RD: false,
+					RA: false,
+					Z: 0,
+					RCODE: 0,
 				},
 				QDCOUNT: 1,
+				ANCOUNT: 0,
+				NSCOUNT: 0,
+				ARCOUNT: 0,
 			},
 			Question: DNSQuestion{
 				Name:  "codecrafters.io",
