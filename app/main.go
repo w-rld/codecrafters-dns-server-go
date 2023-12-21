@@ -71,12 +71,12 @@ func main() {
 
 		msg := Deserialize(buf)
 		fmt.Printf("Received %d bytes from %s: %v\n", size, source, msg)
-		fmt.Printf("Received %d bytes from %s: %b\n", size, source, buf[12:])
+		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 		msg.Flags.QR = true
 		// Create a response
 		response := Serialize(msg)
 		question := DNSQuestion{
-			Name:  receivedData,
+			Name:  "codecrafters.io",
 			Type:  1,
 			Class: 1,
 		}
