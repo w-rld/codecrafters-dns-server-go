@@ -26,8 +26,8 @@ func (question DNSQuestion) Encode() []byte {
     var result []byte
     labels := strings.Split(question.Name, ".")
     for _, label := range labels {
-        result = append(result, byte(len(label)))
-      result = append(result, []byte(label)...)
+      result = append(result, byte(len(label)))
+      result = append(result, label...)
     }
     result = append(result, 0x00)
     result = append(result, byte(question.Type>>8), byte(question.Type))
