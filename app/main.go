@@ -63,9 +63,9 @@ func main() {
 		// Create a response
 		response := msg.Encode()
 		test := Deserialize(response)
-		test2 := deserializeQuestion(msg.Question.Encode())
+		test2 := msg.Question.Encode()
 		fmt.Printf("Deserialized Serialized response bytes %v\n", test)
-		fmt.Printf("Deserialized Serialized question bytes %v\n", test2)
+		fmt.Printf("Deserialized Serialized question bytes %b\n", test2)
 
 		fmt.Printf("Serialized response bytes %b\n", response)
 
