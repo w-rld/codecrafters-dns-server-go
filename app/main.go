@@ -32,8 +32,8 @@ func main() {
 
 		receivedData := string(buf[:size])
 
-//		receivedMsg := Deserialize(buf)
-//		fmt.Printf("Received %d bytes from %s: %v\n", size, source, receivedMsg)
+		receivedMsg := Deserialize(buf)
+		fmt.Printf("Received %d bytes from %s: %v\n", size, source, receivedMsg)
 		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 		msg := DNSMessage{
 			Header: DNSHeader{
@@ -62,6 +62,8 @@ func main() {
 		fmt.Printf("Sending Message: %v\n", msg)
 		// Create a response
 		response := msg.Encode()
+		test := Deserialize(response)
+		fmt.Printf("Deserialized Serialized response bytes %v\n", test)
 
 		fmt.Printf("Serialized response bytes %b\n", response)
 
@@ -73,7 +75,7 @@ func main() {
 }
 
 func Deserialize(data []byte) DNSMessage {
-	return DNSMessage{Header:DNSHeader{
+	header:=DNSHeader{
 		ID: binary.BigEndian.Uint16(data[:2]),
 		Flags: DNSHeaderFlags{
 			QR: (data[2] & 0x80) != 0,
@@ -84,16 +86,22 @@ func Deserialize(data []byte) DNSMessage {
 			RA: (data[2] & 0x80) != 0,
 			Z: (data[3] >> 4) & 0x07,
 			RCODE: data[3] & 0x0F,
-			},
-			QDCOUNT: binary.BigEndian.Uint16(data[4:6]),
-			ANCOUNT: binary.BigEndian.Uint16(data[6:8]),
-			NSCOUNT: binary.BigEndian.Uint16(data[8:10]),
-			ARCOUNT: binary.BigEndian.Uint16(data[10:12]),
-			},
-		Question: DNSQuestion{
-			Name: string(data[12:14]),
-			Type: binary.BigEndian.Uint16(data[14:16]),
-			Class: binary.BigEndian.Uint16(data[16:18]),
 		},
+		QDCOUNT: binary.BigEndian.Uint16(data[4:6]),
+		ANCOUNT: binary.BigEndian.Uint16(data[6:8]),
+		NSCOUNT: binary.BigEndian.Uint16(data[8:10]),
+		ARCOUNT: binary.BigEndian.Uint16(data[10:12]),
+	}
+	questionNameLength := int(data[12])
+	questionName := make([]byte, questionNameLength)
+	copy(questionName, data[13:13+questionNameLength])
+	question := DNSQuestion{
+		Name: string(questionName),
+		Type: binary.BigEndian.Uint16(data[13+questionNameLength:15+questionNameLength]),
+		Class: binary.BigEndian.Uint16(data[15+questionNameLength:17+questionNameLength]),
+	}
+	return DNSMessage{
+		Header: header,
+		Question: question,
 	}
 }
