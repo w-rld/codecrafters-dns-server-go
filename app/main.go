@@ -3,13 +3,21 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"strings"
+
 	// Uncomment this block to pass the first stage
 	"net"
 )
 
 type DNSMessage struct {
-	Header DNSResponseHeader
+	Header  DNSHeader
 	content string
+}
+
+type DNSQuestion struct {
+	Name string
+	Type uint16
+	Class uint16
 }
 
 type DNSHeaderFlags struct {
@@ -23,7 +31,7 @@ type DNSHeaderFlags struct {
 	RCODE uint8 // Response Code
 }
 
-type DNSResponseHeader struct {
+type DNSHeader struct {
 	ID uint16 // Packet Identifier
 	Flags DNSHeaderFlags
 	QDCOUNT uint16 // Question Count
@@ -60,12 +68,20 @@ func main() {
 		}
 
 		receivedData := string(buf[:size])
-		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 
+		msg := Deserialize(buf)
+		fmt.Printf("Received %d bytes from %s: %v\n", size, source, msg)
+		fmt.Printf("Received %d bytes from %s: %b\n", size, source, buf[12:])
 		// Create a response
-		header := CreateResponse();
-		response := Serialize(header)
-		fmt.Printf("Serialized response header bytes %b", response)
+		response := Serialize(msg)
+		question := DNSQuestion{
+			Name:  receivedData,
+			Type:  1,
+			Class: 1,
+		}
+		response = append(response, Encode(question)...)
+
+		fmt.Printf("Serialized response bytes %b\n", response)
 
 		_, err = udpConn.WriteToUDP(response, source)
 		if err != nil {
@@ -74,7 +90,21 @@ func main() {
 	}
 }
 
-func Serialize(header DNSResponseHeader) []byte {
+func Encode(question DNSQuestion) []byte {
+	labels  := strings.Split(question.Name, ".")
+	var result []byte
+	for _, label := range labels {
+		result = append(result, byte(len(label)))
+		result = append(result, label...)
+	}
+	result = append(result, '\x00')
+
+	result = append(result, IntToBytes(question.Type)...)
+	result = append(result, IntToBytes(question.Class)...)
+	return result
+}
+
+func Serialize(header DNSHeader) []byte {
 	result := make([]byte, binary.Size(header))
 	binary.BigEndian.PutUint16(result[:2], header.ID)
 
@@ -107,8 +137,34 @@ func Serialize(header DNSResponseHeader) []byte {
 	return result
 }
 
-func CreateResponse() DNSResponseHeader {
-	return DNSResponseHeader{
+func Deserialize(data []byte) DNSHeader {
+	return DNSHeader{
+		ID: binary.BigEndian.Uint16(data[:2]),
+		Flags: DNSHeaderFlags{
+			QR: (data[2] & 0x80) != 0,
+			OPCODE: (data[2] >> 3) & 0x0F,
+			AA: (data[2] & 0x04) != 0,
+			TC: (data[2] & 0x02) != 0,
+			RD: (data[2] & 0x01) != 0,
+			RA: (data[2] & 0x80) != 0,
+			Z: (data[3] >> 4) & 0x07,
+			RCODE: data[3] & 0x0F,
+		},
+		QDCOUNT: binary.BigEndian.Uint16(data[4:6]),
+		ANCOUNT: binary.BigEndian.Uint16(data[6:8]),
+		NSCOUNT: binary.BigEndian.Uint16(data[8:10]),
+		ARCOUNT: binary.BigEndian.Uint16(data[10:12]),
+	}
+}
+
+func IntToBytes(n uint16) []byte {
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, n)
+	return b
+}
+
+func CreateResponse() DNSHeader {
+	return DNSHeader{
 		ID: 1234,
 		Flags: DNSHeaderFlags {
 			QR: true,
