@@ -2,7 +2,9 @@ package main
 
 import (
     "encoding/binary"
-    "strings"
+	"fmt"
+	"log"
+	"strings"
 )
 
 type DNSMessage struct {
@@ -24,15 +26,17 @@ type DNSQuestion struct {
 
 func (question DNSQuestion) Encode() []byte {
     var result []byte
+    fmt.Printf("Encoding Question %v\n", question)
     labels := strings.Split(question.Name, ".")
     for _, label := range labels {
       result = append(result, byte(len(label)))
       result = append(result, label...)
     }
     result = append(result, 0x00)
-    result = append(result, byte(question.Type>>8), byte(question.Type))
-    result = append(result, byte(question.Class>>8), byte(question.Class))
-    return result
+    questionAdd := make([]byte, 4)
+    binary.BigEndian.PutUint16(questionAdd[:2], question.Type)
+    binary.BigEndian.PutUint16(questionAdd[2:4], question.Class)
+    return append(result, questionAdd...)
 }
 
 type DNSHeaderFlags struct {
