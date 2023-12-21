@@ -72,6 +72,7 @@ func main() {
 		msg := Deserialize(buf)
 		fmt.Printf("Received %d bytes from %s: %v\n", size, source, msg)
 		fmt.Printf("Received %d bytes from %s: %b\n", size, source, buf[12:])
+		msg.QDCOUNT = 1
 		// Create a response
 		response := Serialize(msg)
 		question := DNSQuestion{
