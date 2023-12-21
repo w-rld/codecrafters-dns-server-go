@@ -79,5 +79,11 @@ func Deserialize(data []byte) DNSMessage {
 			ANCOUNT: binary.BigEndian.Uint16(data[6:8]),
 			NSCOUNT: binary.BigEndian.Uint16(data[8:10]),
 			ARCOUNT: binary.BigEndian.Uint16(data[10:12]),
-			}}
+			},
+		Question: DNSQuestion{
+			Name: string(data[12:14]),
+			Type: binary.BigEndian.Uint16(data[14:16]),
+			Class: binary.BigEndian.Uint16(data[16:18]),
+		},
+	}
 }
