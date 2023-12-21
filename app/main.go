@@ -47,7 +47,7 @@ func main() {
 				Name:  "codecrafters.io",
 				Type:  1,
 				Class: 1,
-				},
+			},
 		}
 
 		// Create a response
