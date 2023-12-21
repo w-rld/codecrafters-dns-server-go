@@ -63,7 +63,9 @@ func main() {
 		// Create a response
 		response := msg.Encode()
 		test := Deserialize(response)
+		test2 := deserializeQuestion(msg.Question.Encode())
 		fmt.Printf("Deserialized Serialized response bytes %v\n", test)
+		fmt.Printf("Deserialized Serialized question bytes %v\n", test2)
 
 		fmt.Printf("Serialized response bytes %b\n", response)
 
@@ -75,33 +77,39 @@ func main() {
 }
 
 func Deserialize(data []byte) DNSMessage {
-	header:=DNSHeader{
+	return DNSMessage{
+		Header: deserializeHeader(data[:12]),
+		Question: deserializeQuestion(data[12:]),
+	}
+}
+
+func deserializeHeader(data []byte) DNSHeader {
+	return DNSHeader{
 		ID: binary.BigEndian.Uint16(data[:2]),
 		Flags: DNSHeaderFlags{
-			QR: (data[2] & 0x80) != 0,
-			OPCODE: (data[2] >> 3) & 0x0F,
-			AA: (data[2] & 0x04) != 0,
-			TC: (data[2] & 0x02) != 0,
-			RD: (data[2] & 0x01) != 0,
-			RA: (data[2] & 0x80) != 0,
-			Z: (data[3] >> 4) & 0x07,
-			RCODE: data[3] & 0x0F,
-		},
+				QR: (data[2] & 0x80) != 0,
+				OPCODE: (data[2] >> 3) & 0x0F,
+				AA: (data[2] & 0x04) != 0,
+				TC: (data[2] & 0x02) != 0,
+				RD: (data[2] & 0x01) != 0,
+				RA: (data[2] & 0x80) != 0,
+				Z: (data[3] >> 4) & 0x07,
+				RCODE: data[3] & 0x0F,
+			},
 		QDCOUNT: binary.BigEndian.Uint16(data[4:6]),
 		ANCOUNT: binary.BigEndian.Uint16(data[6:8]),
 		NSCOUNT: binary.BigEndian.Uint16(data[8:10]),
 		ARCOUNT: binary.BigEndian.Uint16(data[10:12]),
 	}
-	questionNameLength := int(data[12])
+}
+
+func deserializeQuestion(data []byte) DNSQuestion {
+	questionNameLength := int(data[0])
 	questionName := make([]byte, questionNameLength)
-	copy(questionName, data[13:13+questionNameLength])
-	question := DNSQuestion{
+	copy(questionName, data[1:1+questionNameLength])
+	return DNSQuestion{
 		Name: string(questionName),
-		Type: binary.BigEndian.Uint16(data[13+questionNameLength:15+questionNameLength]),
-		Class: binary.BigEndian.Uint16(data[15+questionNameLength:17+questionNameLength]),
-	}
-	return DNSMessage{
-		Header: header,
-		Question: question,
+		Type: binary.BigEndian.Uint16(data[1+questionNameLength:3+questionNameLength]),
+		Class: binary.BigEndian.Uint16(data[3+questionNameLength:5+questionNameLength]),
 	}
 }
