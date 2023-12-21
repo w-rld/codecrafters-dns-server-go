@@ -54,7 +54,7 @@ func main() {
 				ARCOUNT: 0,
 			},
 			Question: DNSQuestion{
-				Name:  "codecrafters.io.",
+				Name:  "codecrafters.io",
 				Type:  1,
 				Class: 1,
 			},
