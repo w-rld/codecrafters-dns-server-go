@@ -49,7 +49,7 @@ func main() {
 				Class: 1,
 			},
 		}
-
+		fmt.Printf("Sending Message: %v\n", msg)
 		// Create a response
 		response := msg.Encode()
 
