@@ -1,9 +1,8 @@
 package main
 
 import (
-    "encoding/binary"
+	"encoding/binary"
 	"fmt"
-	"log"
 	"strings"
 )
 
