@@ -55,12 +55,12 @@ func main() {
 				ARCOUNT: 0,
 			},
 			Question: DNSQuestion{
-				Name:  "codecrafters.io",
+				Name:  receivedMsg.Question.Name,
 				Type:  1,
 				Class: 1,
 			},
 			Answer: DNSAnswer{
-				Name:  "codecrafters.io",
+				Name:  receivedMsg.Question.Name,
 				Type:  1,
 				Class: 1,
 				TTL: 60,
