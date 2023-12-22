@@ -7,15 +7,19 @@ import (
 
 type DNSMessage struct {
 	Header   DNSHeader
-	Question DNSQuestion
-	Answer DNSAnswer
+	Questions []DNSQuestion
+	Answers []DNSAnswer
 }
 
 func (message DNSMessage) Encode() []byte {
-	headerBytes := message.Header.Encode()
-	questionBytes := message.Question.Encode()
-	answerBytes := message.Answer.Encode()
-	return append(append(headerBytes, questionBytes...), answerBytes...)
+	result := message.Header.Encode()
+	for _, question := range message.Questions {
+		result = append(result, question.Encode()...)
+	}
+	for _, answer := range message.Answers {
+		result = append(result, answer.Encode()...)
+	}
+	return result
 }
 
 type DNSAnswer struct {
