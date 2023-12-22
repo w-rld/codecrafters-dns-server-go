@@ -59,14 +59,6 @@ func main() {
 		fmt.Printf("Sending Message: %v\n", msg)
 		// Create a response
 		response := msg.Encode()
-		test := Deserialize(response)
-		fmt.Printf("Deserialized Serialized response bytes %v\n", test)
-
-		a1 := msg.Header.ToByteArray()
-		a2 := msg.Header.Encode()
-
-		fmt.Printf("MY:    %b\n", a1)
-		fmt.Printf("THEIR: %b\n", a2)
 
 		_, err = udpConn.WriteToUDP(response, source)
 		if err != nil {
