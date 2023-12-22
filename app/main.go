@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"net"
 )
 
 func main() {
+	resolver := flag.String("resolver", "", "resolver address")
 	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:2053")
 	if err != nil {
 		fmt.Println("Failed to resolve UDP address:", err)
@@ -30,12 +32,17 @@ func main() {
 		}
 
 		receivedMsg := Deserialize(buf)
+
+		if source.IP.String() == *resolver {
+
+		}
 		fmt.Printf("Received %d bytes from %s: %v\n", size, source, receivedMsg)
+		var response []byte
 		rcode := 0
 		if receivedMsg.Header.Flags.OPCODE != 0 {
 			rcode = 4
 		}
-		msg := DNSMessage{
+		resMsg := DNSMessage{
 			Header: DNSHeader{
 				ID: receivedMsg.Header.ID,
 				Flags: DNSHeaderFlags{
@@ -56,26 +63,67 @@ func main() {
 			Questions: []DNSQuestion{},
 			Answers:   []DNSAnswer{},
 		}
-		for _, question := range receivedMsg.Questions {
-			msg.Header.QDCOUNT++
-			msg.Header.ANCOUNT++
-			msg.Questions = append(msg.Questions, DNSQuestion{
-				Name:  question.Name,
-				Type:  1,
-				Class: 1,
-			})
-			msg.Answers = append(msg.Answers, DNSAnswer{
-				Name:     question.Name,
-				Type:     1,
-				Class:    1,
-				TTL:      60,
-				RDLENGTH: 4,
-				RDATA:    0,
-			})
+		if *resolver != "" {
+			addr, err := net.ResolveUDPAddr("udp", *resolver)
+			if err != nil {
+				fmt.Println("Failed to resolve UDP address:", err)
+				return
+			}
+
+			udp, err := net.ListenUDP("udp", addr)
+			if err != nil {
+				fmt.Println("Failed to bind to address:", err)
+				return
+			}
+			for _, question := range receivedMsg.Questions {
+				msg := DNSMessage{
+					Header: DNSHeader{
+						ID: receivedMsg.Header.ID,
+						Flags: DNSHeaderFlags{
+							QR:     true,
+							OPCODE: receivedMsg.Header.Flags.OPCODE,
+							AA:     false,
+							TC:     false,
+							RD:     receivedMsg.Header.Flags.RD,
+							RA:     false,
+							Z:      0,
+							RCODE:  uint8(rcode),
+						},
+						QDCOUNT: 1,
+						ANCOUNT: 0,
+						NSCOUNT: 0,
+						ARCOUNT: 0,
+					},
+					Questions: []DNSQuestion{question},
+				}
+				res, err := udp.WriteToUDP(msg.Encode(), addr)
+				if err != nil {
+					fmt.Println("Failed to send response:", err)
+				}
+
+			}
+		} else {
+			for _, question := range receivedMsg.Questions {
+				resMsg.Header.QDCOUNT++
+				resMsg.Header.ANCOUNT++
+				resMsg.Questions = append(resMsg.Questions, DNSQuestion{
+					Name:  question.Name,
+					Type:  1,
+					Class: 1,
+				})
+				resMsg.Answers = append(resMsg.Answers, DNSAnswer{
+					Name:     question.Name,
+					Type:     1,
+					Class:    1,
+					TTL:      60,
+					RDLENGTH: 4,
+					RDATA:    0,
+				})
+			}
+			fmt.Printf("Sending Message: %v\n", resMsg)
+			// Create a response
+			response = resMsg.Encode()
 		}
-		fmt.Printf("Sending Message: %v\n", msg)
-		// Create a response
-		response := msg.Encode()
 
 		_, err = udpConn.WriteToUDP(response, source)
 		if err != nil {
@@ -98,7 +146,7 @@ func Deserialize(data []byte) DNSMessage {
 		counter++
 	}
 	return DNSMessage{
-		Header: deserializeHeader(data[:12]),
+		Header:    deserializeHeader(data[:12]),
 		Questions: questions,
 	}
 }
@@ -157,11 +205,11 @@ func deserializeQuestion(data []byte, offset int) (DNSQuestion, int) {
 	questionName, newOffset := deserializeDomainName(data, offset)
 	offset = newOffset
 	questionType := binary.BigEndian.Uint16(data[offset : offset+2])
-	offset +=2
+	offset += 2
 	questionClass := binary.BigEndian.Uint16(data[offset : offset+2])
 	return DNSQuestion{
 		Name:  questionName,
 		Type:  questionType,
 		Class: questionClass,
-	}, offset+2
+	}, offset + 2
 }
