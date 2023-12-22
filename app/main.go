@@ -46,7 +46,7 @@ func main() {
 					RCODE: 0,
 				},
 				QDCOUNT: 1,
-				ANCOUNT: 0,
+				ANCOUNT: 1,
 				NSCOUNT: 0,
 				ARCOUNT: 0,
 			},
@@ -54,6 +54,14 @@ func main() {
 				Name:  "codecrafters.io",
 				Type:  1,
 				Class: 1,
+			},
+			Answer: DNSAnswer{
+				Name:  "codecrafters.io",
+				Type:  1,
+				Class: 1,
+				TTL: 60,
+				RDLENGTH: 4,
+				RDATA: 0,
 			},
 		}
 		fmt.Printf("Sending Message: %v\n", msg)

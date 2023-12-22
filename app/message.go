@@ -8,12 +8,35 @@ import (
 type DNSMessage struct {
 	Header   DNSHeader
 	Question DNSQuestion
+	Answer DNSAnswer
 }
 
 func (message DNSMessage) Encode() []byte {
 	headerBytes := message.Header.Encode()
 	questionBytes := message.Question.Encode()
-	return append(headerBytes, questionBytes...)
+	answerBytes := message.Answer.Encode()
+	return append(append(headerBytes, questionBytes...), answerBytes...)
+}
+
+type DNSAnswer struct {
+	Name string
+	Type  uint16
+	Class uint16
+	TTL   uint32
+	RDLENGTH uint16
+	RDATA uint32
+}
+
+func (answer DNSAnswer) Encode() []byte {
+	questionAdd := make([]byte, 4)
+	binary.BigEndian.PutUint16(questionAdd[:2], answer.Type)
+	binary.BigEndian.PutUint16(questionAdd[2:4], answer.Class)
+	result := append(domainToBytes(answer.Name), questionAdd...)
+	answerData := make([]byte, 10)
+	binary.BigEndian.PutUint32(answerData[:4], answer.TTL)
+	binary.BigEndian.PutUint16(answerData[4:6], answer.RDLENGTH)
+	binary.BigEndian.PutUint32(answerData[6:10], answer.RDATA)
+	return append(result, answerData...)
 }
 
 type DNSQuestion struct {
@@ -23,18 +46,20 @@ type DNSQuestion struct {
 }
 
 func (question DNSQuestion) Encode() []byte {
+	questionAdd := make([]byte, 4)
+	binary.BigEndian.PutUint16(questionAdd[:2], question.Type)
+	binary.BigEndian.PutUint16(questionAdd[2:4], question.Class)
+	return append(domainToBytes(question.Name), questionAdd...)
+}
+
+func domainToBytes(domain string) []byte {
 	var result []byte
-	labels := strings.Split(question.Name, ".")
+	labels := strings.Split(domain, ".")
 	for _, label := range labels {
 		result = append(result, byte(len(label)))
 		result = append(result, []byte(label)...)
 	}
-	result = append(result, 0x00)
-	questionAdd := make([]byte, 4)
-	binary.BigEndian.PutUint16(questionAdd[:2], question.Type)
-	binary.BigEndian.PutUint16(questionAdd[2:4], question.Class)
-	result = append(result, questionAdd...)
-	return result
+	return append(result, 0x00)
 }
 
 type DNSHeaderFlags struct {
