@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"strings"
 )
 
 type DNSMessage struct {
-	Header   DNSHeader
+	Header    DNSHeader
 	Questions []DNSQuestion
-	Answers []DNSAnswer
+	Answers   []DNSAnswer
 }
 
 func (message DNSMessage) Encode() []byte {
@@ -23,10 +24,10 @@ func (message DNSMessage) Encode() []byte {
 }
 
 type DNSAnswer struct {
-	Name string
-	Type  uint16
-	Class uint16
-	TTL   uint32
+	Name     string
+	Type     uint16
+	Class    uint16
+	TTL      uint32
 	RDLENGTH uint16
 	RDATA uint32
 }
@@ -117,4 +118,38 @@ func (header DNSHeader) Encode() []byte {
 	binary.BigEndian.PutUint16(result[10:], header.ARCOUNT)
 
 	return result
+}
+
+func (message DNSMessage) ToString() string {
+	var questions string
+	for _, q := range message.Questions {
+		if questions != "" {
+			questions += ","
+		}
+		questions += q.ToString()
+	}
+	var answers string
+	for _, a := range message.Answers {
+		if answers != "" {
+			answers += ","
+		}
+		answers += a.ToString()
+	}
+	return fmt.Sprintf("DNSMessage[Header: %s, Questions: [%s], Answers: [%s]]", message.Header.ToString(), questions, answers)
+}
+
+func (h DNSHeader) ToString() string {
+	return fmt.Sprintf("DNSHeader[ID: %d, Flags: %s, QDCOUNT: %d, ANCOUNT: %d, NSCOUNT: %d, ARCOUNT: %d]", h.ID, h.Flags.ToString(), h.QDCOUNT, h.ANCOUNT, h.NSCOUNT, h.ARCOUNT)
+}
+
+func (hf DNSHeaderFlags) ToString() string {
+	return fmt.Sprintf("DNSHeaderFlags[QR: %t, OPCODE: %d, AA: %t, TC: %t, RD: %t, RA: %t]", hf.QR, hf.OPCODE, hf.AA, hf.TC, hf.RD, hf.RA)
+}
+
+func (q DNSQuestion) ToString() string {
+	return fmt.Sprintf("DNSQuestion[Name: %s, Type: %d, Class: %d]", q.Name, q.Type, q.Class)
+}
+
+func (a DNSAnswer) ToString() string {
+	return fmt.Sprintf("DNSAnswer[Name: %s, Type: %d, Class: %d, TTL: %d, RDLENGHT: %d, RDATA: %d]", a.Name, a.Type, a.Class, a.TTL, a.RDLENGTH, a.RDATA)
 }
