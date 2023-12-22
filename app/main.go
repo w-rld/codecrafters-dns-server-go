@@ -30,11 +30,8 @@ func main() {
 			break
 		}
 
-		receivedData := string(buf[:size])
-
 		receivedMsg := Deserialize(buf)
 		fmt.Printf("Received %d bytes from %s: %v\n", size, source, receivedMsg)
-		fmt.Printf("Received %d bytes from %s: %s\n", size, source, receivedData)
 		msg := DNSMessage{
 			Header: DNSHeader{
 				ID: 1234,
@@ -63,11 +60,13 @@ func main() {
 		// Create a response
 		response := msg.Encode()
 		test := Deserialize(response)
-		test2 := msg.Question.Encode()
 		fmt.Printf("Deserialized Serialized response bytes %v\n", test)
-		fmt.Printf("Deserialized Serialized question bytes %b\n", test2)
 
-		fmt.Printf("Serialized response bytes %b\n", response)
+		a1 := msg.Header.ToByteArray()
+		a2 := msg.Header.Encode()
+
+		fmt.Printf("MY:    %b\n", a1)
+		fmt.Printf("THEIR: %b\n", a2)
 
 		_, err = udpConn.WriteToUDP(response, source)
 		if err != nil {
@@ -104,12 +103,22 @@ func deserializeHeader(data []byte) DNSHeader {
 }
 
 func deserializeQuestion(data []byte) DNSQuestion {
-	questionNameLength := int(data[0])
-	questionName := make([]byte, questionNameLength)
-	copy(questionName, data[1:1+questionNameLength])
+	counter := 0
+	var name string
+	for data[counter] != 0x00 {
+		partLength := int(data[counter])
+		part := make([]byte, partLength)
+		copy(part, data[counter+1:counter+1+partLength])
+		if name != "" {
+			name += "."
+		}
+		name += string(part)
+		counter += partLength + 1
+	}
+
 	return DNSQuestion{
-		Name: string(questionName),
-		Type: binary.BigEndian.Uint16(data[1+questionNameLength:3+questionNameLength]),
-		Class: binary.BigEndian.Uint16(data[3+questionNameLength:5+questionNameLength]),
+		Name: name,
+		Type: binary.BigEndian.Uint16(data[1+counter:3+counter]),
+		Class: binary.BigEndian.Uint16(data[3+counter:5+counter]),
 	}
 }
