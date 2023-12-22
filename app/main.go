@@ -32,18 +32,22 @@ func main() {
 
 		receivedMsg := Deserialize(buf)
 		fmt.Printf("Received %d bytes from %s: %v\n", size, source, receivedMsg)
+		rcode := 0
+		if receivedMsg.Header.Flags.OPCODE != 0 {
+			rcode = 4
+		}
 		msg := DNSMessage{
 			Header: DNSHeader{
-				ID: 1234,
+				ID: receivedMsg.Header.ID,
 				Flags: DNSHeaderFlags{
 					QR: true,
-					OPCODE: 0,
+					OPCODE: receivedMsg.Header.Flags.OPCODE,
 					AA: false,
 					TC: false,
-					RD: false,
+					RD: receivedMsg.Header.Flags.RD,
 					RA: false,
 					Z: 0,
-					RCODE: 0,
+					RCODE: uint8(rcode),
 				},
 				QDCOUNT: 1,
 				ANCOUNT: 1,
